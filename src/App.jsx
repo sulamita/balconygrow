@@ -1,10 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
+import translations from "./translations";
 
 const supabase = createClient(
   process.env.REACT_APP_SUPABASE_URL,
   process.env.REACT_APP_SUPABASE_ANON_KEY
 );
+
+const detectLang = () => {
+  const lang = navigator.language || "en";
+  return lang.startsWith("es") ? "es" : "en";
+};
 
 const GlobalStyle = () => (
   <style>{`
@@ -37,6 +43,8 @@ const GlobalStyle = () => (
     .btn-secondary:hover{background:var(--dew)}
     .btn-danger{background:white;color:var(--tomato);border:1.5px solid var(--tomato);border-radius:10px;padding:7px 14px;font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:500;cursor:pointer;transition:all 0.2s}
     .btn-danger:hover{background:#fdf0ec}
+    .btn-lang{background:var(--dew);border:none;border-radius:20px;padding:6px 12px;font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;color:var(--moss);transition:all 0.2s}
+    .btn-lang:hover{background:var(--sprout);color:white}
     .card{background:white;border:1.5px solid var(--dew);border-radius:18px;padding:22px;box-shadow:0 2px 12px rgba(44,26,14,0.06)}
     .weather-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin-bottom:28px}
     .weather-tile{background:linear-gradient(135deg,var(--sky) 0%,var(--dew) 100%);border-radius:14px;padding:14px;text-align:center}
@@ -131,22 +139,27 @@ const GlobalStyle = () => (
 );
 
 const PLANTS = [
-  { id:"tomato",    emoji:"🍅", name:"Tomato",     tag:"Warm season", water:80, fert:85 },
-  { id:"lettuce",   emoji:"🥬", name:"Lettuce",    tag:"Cool season", water:65, fert:40 },
-  { id:"basil",     emoji:"🌿", name:"Basil",      tag:"Warm season", water:55, fert:50 },
-  { id:"pepper",    emoji:"🫑", name:"Pepper",     tag:"Warm season", water:70, fert:75 },
-  { id:"radish",    emoji:"🌱", name:"Radish",     tag:"Quick grow",  water:45, fert:35 },
-  { id:"cucumber",  emoji:"🥒", name:"Cucumber",   tag:"Warm season", water:90, fert:70 },
-  { id:"spinach",   emoji:"🍃", name:"Spinach",    tag:"Cool season", water:60, fert:45 },
-  { id:"carrot",    emoji:"🥕", name:"Carrot",     tag:"Root veg",    water:50, fert:40 },
-  { id:"chilli",    emoji:"🌶️", name:"Chilli",     tag:"Warm season", water:55, fert:65 },
-  { id:"mint",      emoji:"🌱", name:"Mint",       tag:"Perennial",   water:70, fert:30 },
-  { id:"zucchini",  emoji:"🫛", name:"Zucchini",   tag:"Warm season", water:85, fert:80 },
-  { id:"strawberry",emoji:"🍓", name:"Strawberry", tag:"Fruiting",    water:60, fert:55 },
+  { id:"tomato",    emoji:"🍅", name:"Tomato",     tagKey:"warmSeason", water:80, fert:85 },
+  { id:"lettuce",   emoji:"🥬", name:"Lettuce",    tagKey:"coolSeason", water:65, fert:40 },
+  { id:"basil",     emoji:"🌿", name:"Basil",      tagKey:"warmSeason", water:55, fert:50 },
+  { id:"pepper",    emoji:"🫑", name:"Pepper",     tagKey:"warmSeason", water:70, fert:75 },
+  { id:"radish",    emoji:"🌱", name:"Radish",     tagKey:"quickGrow",  water:45, fert:35 },
+  { id:"cucumber",  emoji:"🥒", name:"Cucumber",   tagKey:"warmSeason", water:90, fert:70 },
+  { id:"spinach",   emoji:"🍃", name:"Spinach",    tagKey:"coolSeason", water:60, fert:45 },
+  { id:"carrot",    emoji:"🥕", name:"Carrot",     tagKey:"rootVeg",    water:50, fert:40 },
+  { id:"chilli",    emoji:"🌶️", name:"Chilli",     tagKey:"warmSeason", water:55, fert:65 },
+  { id:"mint",      emoji:"🌱", name:"Mint",       tagKey:"perennial",  water:70, fert:30 },
+  { id:"zucchini",  emoji:"🫛", name:"Zucchini",   tagKey:"warmSeason", water:85, fert:80 },
+  { id:"strawberry",emoji:"🍓", name:"Strawberry", tagKey:"fruiting",   water:60, fert:55 },
 ];
 
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTHS = {
+  en: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+  es: ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"],
+};
+
 const BOARD_TAGS = ["All","Tips","Help","Harvest","Pests","Recipes"];
+const BOARD_TAGS_ES = ["Todo","Consejos","Ayuda","Cosecha","Plagas","Recetas"];
 
 const plantingSeasons = {
   tomato:    [false,false,true,true,true,false,false,false,false,false,false,false],
@@ -168,7 +181,8 @@ const getAvatarColor = (str) => avatarColors[(str?.charCodeAt(0) || 0) % avatarC
 const getInitials = (str) => (str || "?").slice(0,2).toUpperCase();
 
 // ── Auth Modal ────────────────────────────────────────────────────────────────
-function AuthModal({ onClose, onAuth }) {
+function AuthModal({ onClose, lang }) {
+  const t = translations[lang];
   const [authTab, setAuthTab] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -186,13 +200,13 @@ function AuthModal({ onClose, onAuth }) {
 
   const handleSignup = async () => {
     setError(""); setSuccess(""); setLoading(true);
-    if (!username.trim()) { setError("Please enter a display name."); setLoading(false); return; }
+    if (!username.trim()) { setError(t.enterDisplayName); setLoading(false); return; }
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) { setError(error.message); setLoading(false); return; }
     if (data.user) {
       await supabase.from("profiles").update({ username: username.trim() }).eq("id", data.user.id);
     }
-    setSuccess("Account created! Check your email to confirm, then log in.");
+    setSuccess(t.confirmEmail);
     setLoading(false);
   };
 
@@ -203,24 +217,24 @@ function AuthModal({ onClose, onAuth }) {
         <div className="auth-logo">
           <div className="logo-icon">🌿</div>
           <h1>BalconyGrow</h1>
-          <p>Join the community to post & save your garden</p>
+          <p>{t.joinCommunity}</p>
         </div>
         <div className="auth-tabs">
-          <button className={`auth-tab ${authTab==="login"?"active":""}`} onClick={()=>{setAuthTab("login");setError("");setSuccess("");}}>Log In</button>
-          <button className={`auth-tab ${authTab==="signup"?"active":""}`} onClick={()=>{setAuthTab("signup");setError("");setSuccess("");}}>Sign Up</button>
+          <button className={`auth-tab ${authTab==="login"?"active":""}`} onClick={()=>{setAuthTab("login");setError("");setSuccess("")}}>{t.logIn}</button>
+          <button className={`auth-tab ${authTab==="signup"?"active":""}`} onClick={()=>{setAuthTab("signup");setError("");setSuccess("")}}>{t.signUp}</button>
         </div>
         {authTab==="signup"&&(
           <div className="form-group">
-            <label className="form-label">Display Name</label>
-            <input className="form-input" placeholder="e.g. Rosa M." value={username} onChange={e=>setUsername(e.target.value)}/>
+            <label className="form-label">{t.displayName}</label>
+            <input className="form-input" placeholder={t.displayNamePlaceholder} value={username} onChange={e=>setUsername(e.target.value)}/>
           </div>
         )}
         <div className="form-group">
-          <label className="form-label">Email</label>
+          <label className="form-label">{t.email}</label>
           <input className="form-input" type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)}/>
         </div>
         <div className="form-group">
-          <label className="form-label">Password</label>
+          <label className="form-label">{t.password}</label>
           <input className="form-input" type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)}
             onKeyDown={e=>e.key==="Enter"&&(authTab==="login"?handleLogin():handleSignup())}/>
         </div>
@@ -228,7 +242,7 @@ function AuthModal({ onClose, onAuth }) {
         {success&&<div className="form-success">✅ {success}</div>}
         <button className="btn-primary" style={{width:"100%",marginTop:8,padding:"12px"}}
           onClick={authTab==="login"?handleLogin:handleSignup} disabled={loading}>
-          {loading?"Please wait…":authTab==="login"?"Log In 🌱":"Create Account 🌱"}
+          {loading?t.pleaseWait:authTab==="login"?t.logInBtn:t.createAccountBtn}
         </button>
       </div>
     </div>
@@ -237,6 +251,9 @@ function AuthModal({ onClose, onAuth }) {
 
 // ── Main App ──────────────────────────────────────────────────────────────────
 export default function App() {
+  const [lang, setLang] = useState(detectLang);
+  const t = translations[lang];
+
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -251,31 +268,27 @@ export default function App() {
   const [aiLoading, setAiLoading] = useState(false);
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
-  const [boardTab, setBoardTab] = useState("All");
+  const [boardTab, setBoardTab] = useState(0);
   const [newPost, setNewPost] = useState("");
   const [newPostTag, setNewPostTag] = useState("Tip");
   const [savingPlants, setSavingPlants] = useState(false);
 
-  // ── Auth listener ──
+  const toggleLang = () => setLang(l => l === "en" ? "es" : "en");
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSession(session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => setSession(session));
     return () => subscription.unsubscribe();
   }, []);
 
-  // ── Load profile ──
   useEffect(() => {
     if (!session) return;
     supabase.from("profiles").select("*").eq("id", session.user.id).single()
       .then(({ data }) => {
-        if (data) {
-          setProfile(data);
-          if (data.selected_plants?.length) setSelectedPlants(data.selected_plants);
-        }
+        if (data) { setProfile(data); if (data.selected_plants?.length) setSelectedPlants(data.selected_plants); }
       });
   }, [session]);
 
-  // ── Weather ──
   const weatherIconEmoji = (id) => {
     const code = parseInt(id);
     if (code >= 200 && code < 300) return "⛈";
@@ -307,7 +320,6 @@ export default function App() {
 
   useEffect(() => { fetchWeather(location); }, [fetchWeather, location]);
 
-  // ── Posts ──
   const fetchPosts = useCallback(async () => {
     setPostsLoading(true);
     const { data } = await supabase.from("posts").select("*").order("created_at", { ascending: false });
@@ -317,7 +329,6 @@ export default function App() {
 
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
-  // ── Save plants (only if logged in) ──
   const savePlants = async (plants) => {
     if (!session) return;
     setSavingPlants(true);
@@ -326,21 +337,16 @@ export default function App() {
   };
 
   const togglePlant = (id) => {
-    const updated = selectedPlants.includes(id)
-      ? selectedPlants.filter(p => p !== id)
-      : [...selectedPlants, id];
-    setSelectedPlants(updated);
-    setAiText("");
-    savePlants(updated);
+    const updated = selectedPlants.includes(id) ? selectedPlants.filter(p=>p!==id) : [...selectedPlants,id];
+    setSelectedPlants(updated); setAiText(""); savePlants(updated);
   };
 
-  // ── AI ──
   const getRecommendations = async () => {
     if (aiLoading || !weather) return;
     setAiLoading(true); setAiText("");
-    const userLang = navigator.language || "en";
-    const plantNames = selectedPlants.map(id => PLANTS.find(p => p.id === id)?.name).join(", ");
-    const prompt = `You are an expert urban balcony gardening advisor. The user is growing: ${plantNames} on a small balcony. Respond in the following language: ${userLang}.
+    const plantNames = selectedPlants.map(id => PLANTS.find(p=>p.id===id)?.name).join(", ");
+    const respondIn = lang === "es" ? "Spanish (español)" : "English";
+    const prompt = `You are an expert urban balcony gardening advisor. The user is growing: ${plantNames} on a small balcony. Respond in ${respondIn}.
 
 Location: ${location}
 Conditions: ${weather.temp} temp, ${weather.humidity} humidity, ${weather.rainfall} rainfall, ${weather.sun} sun, ${weather.desc}
@@ -364,43 +370,40 @@ Use bullet points. Aim for ~200 words. Be friendly and specific to container/bal
     finally { setAiLoading(false); }
   };
 
-  // ── Board ──
   const handlePost = async () => {
     if (!newPost.trim() || !session || !profile) return;
-    const post = {
-      user_id: session.user.id,
-      author: profile.username || session.user.email,
-      tag: newPostTag,
-      text: newPost.trim(),
-    };
+    const post = { user_id:session.user.id, author:profile.username||session.user.email, tag:BOARD_TAGS[boardTab]||"Tips", text:newPost.trim() };
     const { data } = await supabase.from("posts").insert(post).select().single();
-    if (data) setPosts(prev => [data, ...prev]);
+    if (data) setPosts(prev => [data,...prev]);
     setNewPost("");
   };
 
   const handleLike = async (post) => {
     const newLikes = post.likes + 1;
     await supabase.from("posts").update({ likes: newLikes }).eq("id", post.id);
-    setPosts(prev => prev.map(p => p.id === post.id ? { ...p, likes: newLikes } : p));
+    setPosts(prev => prev.map(p => p.id===post.id ? {...p,likes:newLikes} : p));
   };
 
   const handleDeletePost = async (postId) => {
     await supabase.from("posts").delete().eq("id", postId);
-    setPosts(prev => prev.filter(p => p.id !== postId));
+    setPosts(prev => prev.filter(p => p.id!==postId));
   };
 
   const handleSignOut = () => { supabase.auth.signOut(); setProfile(null); };
 
-  const filteredPosts = boardTab === "All" ? posts : posts.filter(p => p.tag === boardTab);
+  const currentBoardTag = BOARD_TAGS[boardTab] || "All";
+  const filteredPosts = currentBoardTag==="All" ? posts : posts.filter(p=>p.tag===currentBoardTag);
   const currentMonth = new Date().getMonth();
   const rawHumidity = weather?.raw?.humidity ?? 60;
   const rawTemp     = weather?.raw?.temp     ?? 20;
   const rawRain     = weather?.raw?.rainfall ?? 40;
+  const months = MONTHS[lang];
+  const boardTagLabels = lang==="es" ? BOARD_TAGS_ES : BOARD_TAGS;
 
   return (
     <>
       <GlobalStyle />
-      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onAuth={setSession} />}
+      {showAuthModal && <AuthModal onClose={()=>setShowAuthModal(false)} lang={lang} />}
       <div className="app-wrapper">
 
         <header className="header">
@@ -411,30 +414,33 @@ Use bullet points. Aim for ~200 words. Be friendly and specific to container/bal
               <span>Urban Kitchen Garden</span>
             </div>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
             <nav className="nav">
               {[
-                { id:"dashboard", icon:"🏡", label:"Dashboard" },
-                { id:"planner",   icon:"🗓", label:"Planner" },
-                { id:"watering",  icon:"💧", label:"Watering" },
-                { id:"fertiliser",icon:"🌿", label:"Fertiliser" },
-                { id:"board",     icon:"💬", label:"Community" },
-              ].map(t=>(
-                <button key={t.id} className={`nav-btn ${tab===t.id?"active":""}`} onClick={()=>setTab(t.id)}>
-                  {t.icon} {t.label}
+                { id:"dashboard", icon:"🏡", label:t.dashboard },
+                { id:"planner",   icon:"🗓", label:t.planner },
+                { id:"watering",  icon:"💧", label:t.watering },
+                { id:"fertiliser",icon:"🌿", label:t.fertiliser },
+                { id:"board",     icon:"💬", label:t.community },
+              ].map(n=>(
+                <button key={n.id} className={`nav-btn ${tab===n.id?"active":""}`} onClick={()=>setTab(n.id)}>
+                  {n.icon} {n.label}
                 </button>
               ))}
             </nav>
+            <button className="btn-lang" onClick={toggleLang}>
+              {lang==="en" ? "🇪🇸 ES" : "🇬🇧 EN"}
+            </button>
             {session && profile ? (
               <div className="user-chip">
                 <div style={{width:24,height:24,borderRadius:"50%",background:getAvatarColor(profile.username),display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.65rem",fontWeight:700,color:"white"}}>
                   {getInitials(profile.username)}
                 </div>
-                <span>{profile.username || session.user.email}</span>
-                <button className="btn-danger" style={{padding:"3px 8px",fontSize:"0.72rem"}} onClick={handleSignOut}>Out</button>
+                <span>{profile.username||session.user.email}</span>
+                <button className="btn-danger" style={{padding:"3px 8px",fontSize:"0.72rem"}} onClick={handleSignOut}>{t.logOut}</button>
               </div>
             ) : (
-              <button className="btn-secondary" onClick={()=>setShowAuthModal(true)}>Log in / Sign up</button>
+              <button className="btn-secondary" onClick={()=>setShowAuthModal(true)}>{t.loginSignup}</button>
             )}
           </div>
         </header>
@@ -443,22 +449,18 @@ Use bullet points. Aim for ~200 words. Be friendly and specific to container/bal
           <span style={{fontSize:"1.1rem"}}>📍</span>
           <input value={locationInput} onChange={e=>setLocationInput(e.target.value)}
             onKeyDown={e=>e.key==="Enter"&&fetchWeather(locationInput.trim())}
-            placeholder="Enter your city…"/>
-          {weatherLoading&&<span style={{fontSize:"0.85rem",color:"var(--muted)"}}>⏳ Fetching…</span>}
-          {!weatherLoading&&weather&&(
-            <span style={{fontSize:"0.85rem",color:"var(--muted)",whiteSpace:"nowrap"}}>
-              {weather.icon} {weather.temp} · {weather.desc}
-            </span>
-          )}
+            placeholder={t.enterCity}/>
+          {weatherLoading&&<span style={{fontSize:"0.85rem",color:"var(--muted)"}}>{t.fetching}</span>}
+          {!weatherLoading&&weather&&<span style={{fontSize:"0.85rem",color:"var(--muted)",whiteSpace:"nowrap"}}>{weather.icon} {weather.temp} · {weather.desc}</span>}
           {weatherError&&<span style={{fontSize:"0.8rem",color:"var(--tomato)"}}>{weatherError}</span>}
           <button className="btn-primary" onClick={()=>fetchWeather(locationInput.trim())} disabled={weatherLoading}>
-            {weatherLoading?"…":"Update"}
+            {weatherLoading?"…":t.update}
           </button>
         </div>
 
         {weather&&(
           <div className="weather-strip">
-            {[{val:weather.temp,lbl:"Temperature"},{val:weather.humidity,lbl:"Humidity"},{val:weather.rainfall,lbl:"Rainfall"},{val:weather.sun,lbl:"Sun hours"}].map(w=>(
+            {[{val:weather.temp,lbl:t.temperature},{val:weather.humidity,lbl:t.humidity},{val:weather.rainfall,lbl:t.rainfall},{val:weather.sun,lbl:t.sunHours}].map(w=>(
               <div key={w.lbl} className="weather-tile">
                 <div className="val">{w.val}</div>
                 <div className="lbl">{w.lbl}</div>
@@ -472,53 +474,44 @@ Use bullet points. Aim for ~200 words. Be friendly and specific to container/bal
           <div>
             <div className="section">
               <div className="section-heading">
-                My Garden — Select your plants
-                {savingPlants&&<span style={{fontSize:"0.75rem",color:"var(--muted)",marginLeft:10}}>💾 Saving…</span>}
-                {!session&&<span style={{fontSize:"0.75rem",color:"var(--muted)",marginLeft:10}}>— <button style={{background:"none",border:"none",color:"var(--moss)",cursor:"pointer",fontWeight:600,fontSize:"0.75rem"}} onClick={()=>setShowAuthModal(true)}>Log in</button> to save your selection</span>}
+                {t.myGarden}
+                {savingPlants&&<span style={{fontSize:"0.75rem",color:"var(--muted)",marginLeft:10}}>{t.savingPlants}</span>}
+                {!session&&<span style={{fontSize:"0.75rem",color:"var(--muted)",marginLeft:10}}>— <button style={{background:"none",border:"none",color:"var(--moss)",cursor:"pointer",fontWeight:600,fontSize:"0.75rem"}} onClick={()=>setShowAuthModal(true)}>{lang==="es"?"Inicia sesión":"Log in"}</button> {t.loginToSave}</span>}
               </div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:"16px"}}>
                 {PLANTS.map(p=>(
                   <div key={p.id} className={`plant-card ${selectedPlants.includes(p.id)?"selected":""}`} onClick={()=>togglePlant(p.id)}>
                     <div className="plant-emoji">{p.emoji}</div>
                     <div className="plant-name">{p.name}</div>
-                    <div className="plant-tag">{p.tag}</div>
-                    {selectedPlants.includes(p.id)&&<div style={{marginTop:6,fontSize:"0.75rem",color:"var(--moss)",fontWeight:600}}>✓ Growing</div>}
+                    <div className="plant-tag">{t[p.tagKey]}</div>
+                    {selectedPlants.includes(p.id)&&<div style={{marginTop:6,fontSize:"0.75rem",color:"var(--moss)",fontWeight:600}}>{t.growing}</div>}
                   </div>
                 ))}
               </div>
             </div>
             <div className="section">
-              <div className="section-heading">AI Garden Advisor</div>
+              <div className="section-heading">{t.aiAdvisor}</div>
               <div style={{display:"flex",gap:12,alignItems:"center",marginBottom:16,flexWrap:"wrap"}}>
-                <span style={{fontSize:"0.85rem",color:"var(--muted)"}}>
-                  {selectedPlants.length} plant{selectedPlants.length!==1?"s":""} selected · {location}
-                </span>
+                <span style={{fontSize:"0.85rem",color:"var(--muted)"}}>{t.plantsSelected(selectedPlants.length)} · {location}</span>
                 <button className="btn-primary" onClick={getRecommendations} disabled={aiLoading||selectedPlants.length===0||!weather}>
-                  {aiLoading?"Analysing…":"✨ Get Personalised Recommendations"}
+                  {aiLoading?t.analysing:t.getRecommendations}
                 </button>
               </div>
               {(aiText||aiLoading)&&(
                 <div className="ai-box">
-                  <div className="ai-label">
-                    🌿 BalconyGrow AI
-                    {aiLoading&&<div className="dot-pulse"><span/><span/><span/></div>}
-                  </div>
-                  {aiText}
-                  {aiLoading&&!aiText&&"Analysing your garden conditions…"}
+                  <div className="ai-label">🌿 BalconyGrow AI{aiLoading&&<div className="dot-pulse"><span/><span/><span/></div>}</div>
+                  {aiText}{aiLoading&&!aiText&&t.analysingSub}
                 </div>
               )}
             </div>
             <div className="section">
-              <div className="section-heading">Today's Garden Status</div>
+              <div className="section-heading">{t.todayStatus}</div>
               <div className="two-col">
                 <div className="rec-card green">
-                  <h3>💧 Watering Today</h3>
-                  <p>Based on {weather?.temp} and {weather?.humidity} humidity — {rawHumidity>70?"conditions are moist. Skip or reduce watering by 30%.":rawHumidity<45?"dry conditions! Water thoroughly, especially tomatoes & cucumbers.":"moderate conditions. Water as scheduled."}</p>
+                  <h3>{t.wateringToday}</h3>
+                  <p>{t.wateringBasedOn(weather?.temp,weather?.humidity)} {rawHumidity>70?t.wateringMoist:rawHumidity<45?t.wateringDry:t.wateringModerate}</p>
                 </div>
-                <div className="rec-card amber">
-                  <h3>🌿 Fertiliser Due</h3>
-                  <p>Tomatoes & peppers are due for a potassium-rich feed this week. Leafy greens can wait another 10 days.</p>
-                </div>
+                <div className="rec-card amber"><h3>{t.fertDue}</h3><p>{t.fertDueText}</p></div>
               </div>
             </div>
           </div>
@@ -528,11 +521,9 @@ Use bullet points. Aim for ~200 words. Be friendly and specific to container/bal
         {tab==="planner"&&(
           <div>
             <div className="section">
-              <div className="section-heading">Planting Calendar</div>
+              <div className="section-heading">{t.plantingCalendar}</div>
               <div className="card">
-                <div style={{marginBottom:16,fontSize:"0.85rem",color:"var(--muted)"}}>
-                  Green months = ideal sowing window for {location}. Current month highlighted.
-                </div>
+                <div style={{marginBottom:16,fontSize:"0.85rem",color:"var(--muted)"}}>{t.calendarSubtitle(location)}</div>
                 {selectedPlants.map(id=>{
                   const plant=PLANTS.find(p=>p.id===id);
                   const seasons=plantingSeasons[id]||[];
@@ -540,7 +531,7 @@ Use bullet points. Aim for ~200 words. Be friendly and specific to container/bal
                     <div key={id} style={{marginBottom:16}}>
                       <div style={{fontSize:"0.88rem",fontWeight:600,marginBottom:6,display:"flex",alignItems:"center",gap:8}}>{plant.emoji} {plant.name}</div>
                       <div className="month-grid">
-                        {MONTHS.map((m,i)=>(
+                        {months.map((m,i)=>(
                           <div key={m} className="month-cell" style={{background:i===currentMonth?"var(--sun)":seasons[i]?"#d8eed0":"#f5f5f0",border:i===currentMonth?"2px solid var(--bark)":"none"}}>
                             <div className="m">{m}</div>
                             <div className="dot" style={{background:seasons[i]?"var(--moss)":"var(--dew)"}}/>
@@ -551,23 +542,21 @@ Use bullet points. Aim for ~200 words. Be friendly and specific to container/bal
                   );
                 })}
                 <div className="season-legend">
-                  <div className="season-item"><div className="season-dot" style={{background:"var(--moss)"}}/>Sow now</div>
-                  <div className="season-item"><div className="season-dot" style={{background:"var(--sun)"}}/>Current month</div>
-                  <div className="season-item"><div className="season-dot" style={{background:"var(--dew)"}}/>Off-season</div>
+                  <div className="season-item"><div className="season-dot" style={{background:"var(--moss)"}}/>{t.sowNow}</div>
+                  <div className="season-item"><div className="season-dot" style={{background:"var(--sun)"}}/>{t.currentMonth}</div>
+                  <div className="season-item"><div className="season-dot" style={{background:"var(--dew)"}}/>{t.offSeason}</div>
                 </div>
               </div>
             </div>
             <div className="section">
-              <div className="section-heading">Space Planning</div>
+              <div className="section-heading">{t.spacePlanning}</div>
               <div className="two-col">
                 {[
-                  {title:"🪣 Container Sizes",body:"Tomatoes & peppers need 25–30cm deep pots. Lettuce & radishes thrive in 15cm-deep window boxes. Mint: keep isolated — it spreads."},
-                  {title:"☀️ Light Placement",body:"South-facing spots get the most sun. Prioritise tomatoes, peppers & cucumbers there. Leafy greens tolerate partial shade."},
-                  {title:"🌬️ Wind Protection",body:"Higher balconies face more wind. Stake tall plants and consider a windbreak net. Group pots to reduce moisture loss."},
-                  {title:"🔄 Succession Planting",body:"For lettuces and radishes, sow every 2–3 weeks for continuous harvests. A great balcony technique for small batches."},
-                ].map(c=>(
-                  <div key={c.title} className="rec-card green"><h3>{c.title}</h3><p>{c.body}</p></div>
-                ))}
+                  {title:t.containerSizesTitle,body:t.containerSizesBody},
+                  {title:t.lightPlacementTitle,body:t.lightPlacementBody},
+                  {title:t.windProtectionTitle,body:t.windProtectionBody},
+                  {title:t.successionTitle,body:t.successionBody},
+                ].map(c=><div key={c.title} className="rec-card green"><h3>{c.title}</h3><p>{c.body}</p></div>)}
               </div>
             </div>
           </div>
@@ -577,8 +566,8 @@ Use bullet points. Aim for ~200 words. Be friendly and specific to container/bal
         {tab==="watering"&&(
           <div>
             <div className="section">
-              <div className="section-heading">Watering Needs by Plant</div>
-              <p style={{fontSize:"0.85rem",color:"var(--muted)",marginBottom:18}}>Live data for {location} · {weather?.temp} · {weather?.humidity} humidity</p>
+              <div className="section-heading">{t.wateringNeeds}</div>
+              <p style={{fontSize:"0.85rem",color:"var(--muted)",marginBottom:18}}>{t.wateringLiveData(location,weather?.temp,weather?.humidity)}</p>
               <div className="card">
                 {selectedPlants.map(id=>{
                   const plant=PLANTS.find(p=>p.id===id);
@@ -594,11 +583,11 @@ Use bullet points. Aim for ~200 words. Be friendly and specific to container/bal
                         <div className="fert-label">{plant.name}</div>
                         <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}>
                           <div style={{flex:1}}><div className="water-bar"><div className="water-fill" style={{width:`${adjusted}%`}}/></div></div>
-                          <span style={{fontSize:"0.75rem",color:"var(--muted)",whiteSpace:"nowrap"}}>{adjusted}% need</span>
+                          <span style={{fontSize:"0.75rem",color:"var(--muted)",whiteSpace:"nowrap"}}>{adjusted}{t.wateringNeed}</span>
                         </div>
                       </div>
                       <span className={`badge ${adjusted>75?"warn":adjusted>50?"info":"good"}`}>
-                        {adjusted>75?"🚿 Daily":adjusted>50?"💧 Every 2 days":"🌦 Twice/week"}
+                        {adjusted>75?t.daily:adjusted>50?t.everyTwoDays:t.twiceWeek}
                       </span>
                     </div>
                   );
@@ -606,16 +595,14 @@ Use bullet points. Aim for ~200 words. Be friendly and specific to container/bal
               </div>
             </div>
             <div className="section">
-              <div className="section-heading">Watering Tips</div>
+              <div className="section-heading">{t.wateringTips}</div>
               <div className="two-col">
                 {[
-                  {c:"green",title:"⏰ Best Time",body:"Water in early morning (6–9am) to reduce evaporation and fungal issues. Avoid watering in full midday sun."},
-                  {c:"amber",title:"🌡️ Heat Adjustment",body:`At ${weather?.temp} you should ${rawTemp>25?"increase watering and consider shading pots":"maintain regular schedule"}. Check soil moisture 2cm deep.`},
-                  {c:"green",title:"🪴 Container Drainage",body:"Always use pots with drainage holes. Waterlogged roots are the #1 killer of balcony vegetables. Elevate pots for airflow."},
-                  {c:"red",title:"🌧️ Rain",body:`${weather?.rainfall} monthly — ${rawRain>80?"significant rain expected, reduce watering":rawRain<20?"very dry ahead, increase frequency":"moderate rainfall, adjust around wet days"}.`},
-                ].map(t=>(
-                  <div key={t.title} className={`rec-card ${t.c}`}><h3>{t.title}</h3><p>{t.body}</p></div>
-                ))}
+                  {c:"green",title:t.bestTimeTitle,body:t.bestTimeBody},
+                  {c:"amber",title:t.heatAdjTitle,body:rawTemp>25?t.heatAdjBodyHot(weather?.temp):t.heatAdjBodyNormal(weather?.temp)},
+                  {c:"green",title:t.drainageTitle,body:t.drainageBody},
+                  {c:"red",title:t.rainTitle,body:rawRain>80?t.rainHigh(weather?.rainfall):rawRain<20?t.rainLow(weather?.rainfall):t.rainMid(weather?.rainfall)},
+                ].map(ti=><div key={ti.title} className={`rec-card ${ti.c}`}><h3>{ti.title}</h3><p>{ti.body}</p></div>)}
               </div>
             </div>
           </div>
@@ -625,7 +612,7 @@ Use bullet points. Aim for ~200 words. Be friendly and specific to container/bal
         {tab==="fertiliser"&&(
           <div>
             <div className="section">
-              <div className="section-heading">Fertiliser Schedule</div>
+              <div className="section-heading">{t.fertSchedule}</div>
               <div className="card">
                 {selectedPlants.map(id=>{
                   const plant=PLANTS.find(p=>p.id===id);
@@ -634,7 +621,7 @@ Use bullet points. Aim for ~200 words. Be friendly and specific to container/bal
                       <div style={{fontSize:"1.4rem",width:36}}>{plant.emoji}</div>
                       <div style={{flex:1}}>
                         <div className="fert-label">{plant.name}</div>
-                        <div className="fert-freq">{plant.fert>70?"Fortnightly (high feeder)":plant.fert>45?"Monthly (moderate)":"Every 6 weeks (light feeder)"}</div>
+                        <div className="fert-freq">{plant.fert>70?t.fertFortnightly:plant.fert>45?t.fertMonthly:t.fertSixWeeks}</div>
                       </div>
                       <div style={{display:"flex",alignItems:"center",gap:10}}>
                         <div className="progress-bar"><div className="progress-fill" style={{width:`${plant.fert}%`}}/></div>
@@ -646,18 +633,16 @@ Use bullet points. Aim for ~200 words. Be friendly and specific to container/bal
               </div>
             </div>
             <div className="section">
-              <div className="section-heading">Fertiliser Guide</div>
+              <div className="section-heading">{t.fertGuide}</div>
               <div className="two-col">
                 {[
-                  {c:"green",title:"🍅 Fruiting Plants",body:"High-potassium feed once fruiting begins. Tomato feed works well. Seaweed liquid fortnightly as a complement."},
-                  {c:"green",title:"🥬 Leafy Greens",body:"Nitrogen-rich feed every 4–6 weeks. Fish emulsion or balanced liquid feed. Avoid over-feeding — reduces flavour."},
-                  {c:"amber",title:"🌱 Slow-release vs Liquid",body:"Slow-release granules at planting save time. Top up with liquid mid-season. Liquid acts within days; granules last 3–4 months."},
-                  {c:"amber",title:"🌿 Organic Options",body:"Worm castings, compost tea, seaweed extract. Comfrey liquid is free and rich in potassium for fruiting plants."},
-                  {c:"green",title:"📅 When to Stop",body:"Stop feeding 4–6 weeks before end of season. For perennials like mint, stop in late summer."},
-                  {c:"red",title:"⚠️ Over-fertilising",body:"Yellow leaf edges, excessive leaf growth, white crust on soil — signs of too much. Flush pots and pause feeding."},
-                ].map(t=>(
-                  <div key={t.title} className={`rec-card ${t.c}`}><h3>{t.title}</h3><p>{t.body}</p></div>
-                ))}
+                  {c:"green",title:t.fruitingTitle,body:t.fruitingBody},
+                  {c:"green",title:t.leafyTitle,body:t.leafyBody},
+                  {c:"amber",title:t.slowReleaseTitle,body:t.slowReleaseBody},
+                  {c:"amber",title:t.organicTitle,body:t.organicBody},
+                  {c:"green",title:t.stopFeedingTitle,body:t.stopFeedingBody},
+                  {c:"red",title:t.overFertTitle,body:t.overFertBody},
+                ].map(ti=><div key={ti.title} className={`rec-card ${ti.c}`}><h3>{ti.title}</h3><p>{ti.body}</p></div>)}
               </div>
             </div>
           </div>
@@ -666,16 +651,15 @@ Use bullet points. Aim for ~200 words. Be friendly and specific to container/bal
         {/* ── COMMUNITY BOARD ── */}
         {tab==="board"&&(
           <div>
-            <div className="section-heading">Community Message Board</div>
+            <div className="section-heading">{t.communityBoard}</div>
             <div className="tab-pills">
-              {BOARD_TAGS.map(t=>(
-                <button key={t} className={`tab-pill ${boardTab===t?"active":""}`} onClick={()=>setBoardTab(t)}>{t}</button>
+              {boardTagLabels.map((label,i)=>(
+                <button key={label} className={`tab-pill ${boardTab===i?"active":""}`} onClick={()=>setBoardTab(i)}>{label}</button>
               ))}
             </div>
-
             <div className="message-list">
-              {postsLoading&&<div className="empty-board">Loading posts… 🌱</div>}
-              {!postsLoading&&filteredPosts.length===0&&<div className="empty-board">No posts here yet. Be the first! 🌱</div>}
+              {postsLoading&&<div className="empty-board">{t.loadingPosts}</div>}
+              {!postsLoading&&filteredPosts.length===0&&<div className="empty-board">{t.noPosts}</div>}
               {filteredPosts.map(post=>(
                 <div key={post.id} className="card" style={{padding:"16px 18px"}}>
                   <div className="message-item">
@@ -698,31 +682,26 @@ Use bullet points. Aim for ~200 words. Be friendly and specific to container/bal
                 </div>
               ))}
             </div>
-
             {session ? (
               <div className="card" style={{padding:0}}>
                 <div className="compose-box">
                   <div className="compose-toolbar">
-                    <span style={{fontSize:"0.82rem",fontWeight:500,color:"var(--muted)"}}>
-                      Post as <strong>{profile?.username || session.user.email}</strong>
-                    </span>
+                    <span style={{fontSize:"0.82rem",fontWeight:500,color:"var(--muted)"}}>{t.postAs} <strong>{profile?.username||session.user.email}</strong></span>
                     <select className="compose-select" value={newPostTag} onChange={e=>setNewPostTag(e.target.value)}>
-                      {["Tip","Help","Harvest","Pests","Recipes"].map(t=><option key={t}>{t}</option>)}
+                      {BOARD_TAGS.filter(t=>t!=="All").map(tag=><option key={tag}>{tag}</option>)}
                     </select>
                   </div>
-                  <textarea className="compose-textarea"
-                    placeholder="Share a tip, ask for help, or celebrate a harvest…"
-                    value={newPost} onChange={e=>setNewPost(e.target.value)}/>
+                  <textarea className="compose-textarea" placeholder={t.postPlaceholder} value={newPost} onChange={e=>setNewPost(e.target.value)}/>
                   <div className="compose-footer">
-                    <span className="compose-hint">Be kind · No spam · Share your experience</span>
-                    <button className="btn-primary" onClick={handlePost} disabled={!newPost.trim()}>Post 🌱</button>
+                    <span className="compose-hint">{t.postHint}</span>
+                    <button className="btn-primary" onClick={handlePost} disabled={!newPost.trim()}>{t.post}</button>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="login-prompt">
-                <p>Want to share a tip or ask the community for help?</p>
-                <button className="btn-primary" onClick={()=>setShowAuthModal(true)}>Log in or Sign up to post 🌱</button>
+                <p>{t.loginToPost}</p>
+                <button className="btn-primary" onClick={()=>setShowAuthModal(true)}>{t.loginToPostBtn}</button>
               </div>
             )}
           </div>
