@@ -344,7 +344,7 @@ export default function App() {
   const getRecommendations = async () => {
     if (aiLoading || !weather) return;
     setAiLoading(true); setAiText("");
-    const plantNames = selectedPlants.map(id => PLANTS.find(p=>p.id===id)?.name).join(", ");
+    const plantNames = selectedPlants.map(id => t.plants[id]).join(", ");
     const respondIn = lang === "es" ? "Spanish (español)" : "English";
     const prompt = `You are an expert urban balcony gardening advisor. The user is growing: ${plantNames} on a small balcony. Respond in ${respondIn}.
 
@@ -482,7 +482,7 @@ Use bullet points. Aim for ~200 words. Be friendly and specific to container/bal
                 {PLANTS.map(p=>(
                   <div key={p.id} className={`plant-card ${selectedPlants.includes(p.id)?"selected":""}`} onClick={()=>togglePlant(p.id)}>
                     <div className="plant-emoji">{p.emoji}</div>
-                    <div className="plant-name">{p.name}</div>
+                    <div className="plant-name">{t.plants[p.id]}</div>
                     <div className="plant-tag">{t[p.tagKey]}</div>
                     {selectedPlants.includes(p.id)&&<div style={{marginTop:6,fontSize:"0.75rem",color:"var(--moss)",fontWeight:600}}>{t.growing}</div>}
                   </div>

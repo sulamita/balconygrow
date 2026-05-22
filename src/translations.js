@@ -118,6 +118,14 @@ const translations = {
     confirmEmail: "Account created! Check your email to confirm, then log in.",
     enterDisplayName: "Please enter a display name.",
 
+    // Plants
+    plants: {
+      tomato: "Tomato", lettuce: "Lettuce", basil: "Basil",
+      pepper: "Pepper", radish: "Radish", cucumber: "Cucumber",
+      spinach: "Spinach", carrot: "Carrot", chilli: "Chilli",
+      mint: "Mint", zucchini: "Zucchini", strawberry: "Strawberry"
+    },
+
     // Plant tags
     warmSeason: "Warm season",
     coolSeason: "Cool season",
@@ -246,6 +254,14 @@ const translations = {
     createAccountBtn: "Crear cuenta 🌱",
     confirmEmail: "¡Cuenta creada! Revisa tu correo para confirmarla y luego inicia sesión.",
     enterDisplayName: "Por favor introduce un nombre visible.",
+
+    // Plants
+    plants: {
+      tomato: "Tomate", lettuce: "Lechuga", basil: "Albahaca",
+      pepper: "Pimiento", radish: "Rábano", cucumber: "Pepino",
+      spinach: "Espinaca", carrot: "Zanahoria", chilli: "Chile",
+      mint: "Menta", zucchini: "Calabacín", strawberry: "Fresa"
+    },
 
     // Plant tags
     warmSeason: "Temporada cálida",
