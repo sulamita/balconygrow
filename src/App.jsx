@@ -529,7 +529,7 @@ Use bullet points. Aim for ~200 words. Be friendly and specific to container/bal
                   const seasons=plantingSeasons[id]||[];
                   return(
                     <div key={id} style={{marginBottom:16}}>
-                      <div style={{fontSize:"0.88rem",fontWeight:600,marginBottom:6,display:"flex",alignItems:"center",gap:8}}>{plant.emoji} {plant.name}</div>
+                      <div style={{fontSize:"0.88rem",fontWeight:600,marginBottom:6,display:"flex",alignItems:"center",gap:8}}>{plant.emoji} {t.plants[plant.id]}</div>
                       <div className="month-grid">
                         {months.map((m,i)=>(
                           <div key={m} className="month-cell" style={{background:i===currentMonth?"var(--sun)":seasons[i]?"#d8eed0":"#f5f5f0",border:i===currentMonth?"2px solid var(--bark)":"none"}}>
@@ -580,7 +580,7 @@ Use bullet points. Aim for ~200 words. Be friendly and specific to container/bal
                     <div key={id} className="fert-row">
                       <div style={{fontSize:"1.4rem",width:36}}>{plant.emoji}</div>
                       <div style={{flex:1}}>
-                        <div className="fert-label">{plant.name}</div>
+                        <div className="fert-label">{t.plants[plant.id]}</div>
                         <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}>
                           <div style={{flex:1}}><div className="water-bar"><div className="water-fill" style={{width:`${adjusted}%`}}/></div></div>
                           <span style={{fontSize:"0.75rem",color:"var(--muted)",whiteSpace:"nowrap"}}>{adjusted}{t.wateringNeed}</span>
@@ -620,7 +620,7 @@ Use bullet points. Aim for ~200 words. Be friendly and specific to container/bal
                     <div key={id} className="fert-row">
                       <div style={{fontSize:"1.4rem",width:36}}>{plant.emoji}</div>
                       <div style={{flex:1}}>
-                        <div className="fert-label">{plant.name}</div>
+                        <div className="fert-label">{t.plants[plant.id]}</div>
                         <div className="fert-freq">{plant.fert>70?t.fertFortnightly:plant.fert>45?t.fertMonthly:t.fertSixWeeks}</div>
                       </div>
                       <div style={{display:"flex",alignItems:"center",gap:10}}>
