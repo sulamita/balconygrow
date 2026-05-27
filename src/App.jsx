@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { Analytics } from "@vercel/analytics/react";
 import translations from "./translations";
 
 const supabase = createClient(
@@ -708,6 +709,7 @@ Use bullet points. Aim for ~200 words. Be friendly and specific to container/bal
         )}
 
       </div>
+      <Analytics />
     </>
   );
 }
